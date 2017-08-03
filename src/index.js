@@ -466,6 +466,7 @@ module.exports = React.createClass({
             <ScrollView ref="scrollView"
              {...this.props}
                        contentContainerStyle={[styles.wrapper, this.props.style]}
+                       removeClippedSubviews={false}
                        contentOffset={this.state.offset}
                        onScrollBeginDrag={this.onScrollBegin}
                        onMomentumScrollEnd={this.onScrollEnd}
