@@ -11,7 +11,7 @@ import ReactNative, {
   Dimensions,
   TouchableOpacity,
   ViewPagerAndroid,
-  Platform
+  Platform,
 } from 'react-native'
 
 // Using bare setTimeout, setInterval, setImmediate
@@ -173,11 +173,15 @@ module.exports = React.createClass({
   },
 
   componentWillReceiveProps(props) {
-    this.setState(this.initState(props))
+    if(this.props.guide)
+      this.setState(this.initState(props))
   },
 
   componentDidMount() {
-    this.autoplay()
+    this.autoplay();
+    if(!this.props.guide && Platform.OS === 'ios') {
+      this.scrollTo(this.state.index, true);
+    }
   },
 
   initState(props) {
@@ -200,9 +204,12 @@ module.exports = React.createClass({
       if ( props.loop ) {
         setup++
       }
+      let temp = setup;
+      if(!this.props.guide) temp = initState.total;
+
       initState.offset[initState.dir] = initState.dir == 'y'
         ? initState.height * setup
-        : initState.width * setup
+        : initState.width * temp
     }
     return initState
   },
@@ -248,6 +255,7 @@ module.exports = React.createClass({
    * @param  {object} e native event
    */
   onScrollEnd(e) {
+    // console.log('onScrollEnd e.nativeEvent----', e.nativeEvent);
     // update scroll state
     this.setState({
       isScrolling: false
@@ -261,7 +269,6 @@ module.exports = React.createClass({
         e.nativeEvent.contentOffset = {y: e.nativeEvent.position * this.state.height}
       }
     }
-
     this.updateIndex(e.nativeEvent.contentOffset, this.state.dir)
 
     // Note: `this.setState` is async, so I call the `onMomentumScrollEnd`
@@ -291,7 +298,6 @@ module.exports = React.createClass({
    * @param  {string} dir    'x' || 'y'
    */
   updateIndex(offset, dir) {
-
     let state = this.state
     let index = state.index
     let diff = offset[dir] - state.offset[dir]
@@ -325,10 +331,14 @@ module.exports = React.createClass({
    * Scroll by index
    * @param  {number} index offset index
    */
-  scrollTo(index) {
+  scrollTo(index, first = false) {
     if (this.state.isScrolling || this.state.total < 2) return
     let state = this.state
     let diff = (this.props.loop ? 1 : 0) + index + this.state.index
+    if(first) {
+      diff = this.state.index;
+    }
+
     let x = 0
     let y = 0
     if(state.dir == 'x') x = diff * state.width
@@ -372,7 +382,7 @@ module.exports = React.createClass({
     if(this.state.total <= 1) return null
 
     let dots = []
-    let ActiveDot = this.props.activeDot || <View style={{
+    let ActiveDot = <View style={{
             backgroundColor: '#007aff',
             width: 8,
             height: 8,
@@ -380,9 +390,9 @@ module.exports = React.createClass({
             marginLeft: 3,
             marginRight: 3,
             marginTop: 3,
-            marginBottom: 3,
+            marginBottom: 100,
           }} />;
-    let Dot = this.props.dot || <View style={{
+    let Dot = <View style={{
             backgroundColor:'rgba(0,0,0,.2)',
             width: 8,
             height: 8,
@@ -390,10 +400,12 @@ module.exports = React.createClass({
             marginLeft: 3,
             marginRight: 3,
             marginTop: 3,
-            marginBottom: 3,
+            marginBottom: 100,
           }} />;
     for(let i = 0; i < this.state.total; i++) {
-      dots.push(i === this.state.index
+      let temp = this.state.index;
+      if(!this.props.guide && Platform.OS === 'ios') temp = this.state.index + this.state.total;
+      dots.push(i === temp
         ?
         React.cloneElement(ActiveDot, {key: i})
         :
@@ -461,6 +473,7 @@ module.exports = React.createClass({
     )
   },
   renderScrollView(pages) {
+    // console.log('this.state.offset', this.state.offset);
      if (Platform.OS === 'ios')
          return (
             <ScrollView ref="scrollView"
